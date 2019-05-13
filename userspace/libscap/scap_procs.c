@@ -900,6 +900,30 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 }
 
 //
+// Read a single thread info from /proc
+//
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+{
+	struct scap_ns_socket_list* sockets_by_ns = NULL;
+
+	int32_t res;
+	char add_error[SCAP_LASTERR_SIZE];
+
+	if(!scan_sockets)
+	{
+		sockets_by_ns = (void*)-1;
+	}
+
+	res = scap_proc_add_from_proc(handle, tid, -1, tid, procdirname, &sockets_by_ns, pi, add_error);
+	if(res != SCAP_SUCCESS)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
+	}
+
+	return res;
+}
+
+//
 // Scan a directory containing multiple processes under /proc
 //
 static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, char *error)
@@ -1124,7 +1148,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_scan_proc_dir(handle, filename, -1, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		return NULL;
 	}
