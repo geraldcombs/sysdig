@@ -549,7 +549,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parenttid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int tid_to_scan, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -619,14 +619,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	}
 
 	tinfo->tid = tid;
-	if(parenttid != -1)
-	{
-		tinfo->pid = parenttid;
-	}
-	else
-	{
-		tinfo->pid = tid;
-	}
 
 	tinfo->fdlist = NULL;
 
@@ -886,7 +878,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, int parentt
 	//
 	// Only add fds for processes, not threads
 	//
-	if(parenttid == -1)
+	if(tinfo->pid == tinfo->tid)
 	{
 		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
 	}
@@ -914,7 +906,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(handle, tid, -1, tid, procdirname, &sockets_by_ns, pi, add_error);
+	res = scap_proc_add_from_proc(handle, tid, tid, procdirname, &sockets_by_ns, pi, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -986,7 +978,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		//
 		// We have a process that needs to be explored
 		//
-		res = scap_proc_add_from_proc(handle, tid, parenttid, tid, procdirname, &sockets_by_ns, NULL, add_error);
+		res = scap_proc_add_from_proc(handle, tid, tid, procdirname, &sockets_by_ns, NULL, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "cannot add procs tid = %"PRIu64", parenttid = %"PRIi32", dirname = %s, error=%s", tid, parenttid, procdirname, add_error);
